@@ -1,0 +1,456 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EM Macro Monitor</title>
+<!--CHARTJS--><script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #f4f4f2; --surface: #fcfcfb; --border: #e3e2dd;
+    --text: #0b0b0b; --text-2: #52514e; --text-3: #85847e; --grid: #ebeae6;
+    --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
+    --good: #0f7b4b; --bad: #b3261e; --warn: #9a6200;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #111110; --surface: #1a1a19; --border: #2c2c2a;
+      --text: #ffffff; --text-2: #c3c2b7; --text-3: #8f8e85; --grid: #2a2a28;
+      --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+      --good: #4cc38a; --bad: #f2867f; --warn: #e0b050;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #111110; --surface: #1a1a19; --border: #2c2c2a;
+    --text: #ffffff; --text-2: #c3c2b7; --text-3: #8f8e85; --grid: #2a2a28;
+    --s1: #3987e5; --s2: #d95926; --s3: #199e70;
+    --good: #4cc38a; --bad: #f2867f; --warn: #e0b050;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 20px 16px 48px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  h1 { margin: 0; font-size: 22px; letter-spacing: .01em; }
+  .sub { color: var(--text-2); font-size: 12px; }
+  .controls { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  label.pick { font-size: 12px; color: var(--text-2); }
+  select, button { font: inherit; font-size: 14px; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border);
+                   background: var(--surface); color: var(--text); cursor: pointer; }
+  select { min-width: 220px; font-weight: 600; }
+  button.ghost { font-size: 12px; color: var(--text-2); }
+  .banner { background: var(--surface); border: 1px solid var(--s2); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 13px; }
+  .hero { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .hero-top { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px 16px; align-items: baseline; margin-bottom: 12px; }
+  .hero h2 { margin: 0; font-size: 24px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; }
+  .chip { font-size: 12px; border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; color: var(--text-2); white-space: nowrap; }
+  .chip b { color: var(--text); font-weight: 600; }
+  .chip.warn { border-color: var(--warn); color: var(--warn); }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px; }
+  .tile { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; min-width: 0; }
+  .tile .v { font-size: 20px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tile .k { font-size: 11px; color: var(--text-2); }
+  .tile .d { font-size: 11px; color: var(--text-3); }
+  .up { color: var(--bad); } .down { color: var(--good); }
+  .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  @media (min-width: 1500px) { .wrap { max-width: 1560px; } .grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+  @media (max-width: 820px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+  .card-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+  .card h3 { margin: 0; font-size: 16px; }
+  .card h3 .n { color: var(--text-3); font-weight: 500; margin-right: 6px; font-variant-numeric: tabular-nums; }
+  .sec { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); margin: 0 0 4px; font-weight: 600; }
+  ul.pts { margin: 0; padding-left: 18px; }
+  ul.pts li { margin: 0 0 6px; }
+  ul.pts li:last-child { margin-bottom: 0; }
+  .src { color: var(--text-3); font-size: 11px; white-space: nowrap; }
+  ul.live { margin: 0; padding-left: 18px; color: var(--text-2); font-size: 13px; }
+  ul.live li { margin: 0 0 4px; }
+  .pending { color: var(--text-3); font-style: italic; font-size: 12px; }
+  .chart h4 { margin: 0 0 4px; font-size: 12px; font-weight: 600; color: var(--text-2); }
+  .chart h4 span { font-weight: 400; color: var(--text-3); }
+  .chart .box { position: relative; height: 200px; }
+  .charts2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+  table.t { width: 100%; border-collapse: collapse; font-size: 12px; font-variant-numeric: tabular-nums; }
+  table.t th, table.t td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+  table.t th { color: var(--text-2); font-weight: 500; }
+  table.t td.r, table.t th.r { text-align: right; }
+  .tscroll { overflow-x: auto; }
+  .ev { display: flex; gap: 10px; align-items: baseline; padding: 4px 0; border-bottom: 1px solid var(--border); font-size: 13px; }
+  .ev .days { font-variant-numeric: tabular-nums; font-weight: 600; min-width: 64px; }
+  .ev.past { color: var(--text-3); }
+  .news a { color: var(--text); text-decoration: none; }
+  .news a:hover { text-decoration: underline; }
+  .news li { margin-bottom: 6px; font-size: 13px; }
+  .news .meta { color: var(--text-3); font-size: 11px; }
+  details.health { margin-top: 20px; font-size: 12px; color: var(--text-2); }
+  details.health summary { cursor: pointer; }
+  .ok { color: var(--good); } .fail { color: var(--bad); }
+  .empty { color: var(--text-3); font-size: 12px; }
+  footer { margin-top: 24px; color: var(--text-3); font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div>
+      <h1>EM Macro Monitor</h1>
+      <div class="sub" id="updated">Loading…</div>
+    </div>
+    <div class="controls">
+      <label class="pick" for="country">Country</label>
+      <select id="country" aria-label="Select country"></select>
+      <button class="ghost" id="theme" type="button" title="Toggle light/dark">◐</button>
+    </div>
+  </header>
+  <div id="banner"></div>
+  <section class="hero" id="hero"></section>
+  <main class="grid" id="grid"></main>
+  <details class="health" id="health"></details>
+  <footer>
+    Analyst views come from <code>countries.json</code> (hand-edited). The live read lines, tiles and charts are rebuilt every day by
+    <code>fetch_em.py</code> from IMF DataMapper, the World Bank, BIS, FRED, central banks and treasuries, and Yahoo Finance.
+    IMF years from the current year onward are projections. This is not investment advice.
+  </footer>
+</div>
+<script>
+const WINDOWS = [
+  ['macro', 'Macro'], ['external', 'External'], ['fiscal', 'Fiscal'],
+  ['debt', 'Debt & Financing / IMF'], ['valuation', 'Valuation'], ['catalysts', 'Catalysts'],
+];
+const THIS_YEAR = new Date().getFullYear();
+const params = new URLSearchParams(location.search);
+const DATA_DIR = params.get('data') || 'data';
+const cache = {};
+let charts = [];
+let meta = null;
+
+// ------------------------------- helpers ----------------------------------
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fmt = (v, dp = 1) => v == null || isNaN(v) ? '—' : Number(v).toLocaleString('en-US', { minimumFractionDigits: dp, maximumFractionDigits: dp });
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const lastOf = a => (a && a.length ? a[a.length - 1] : null);
+const daysBetween = (a, b) => Math.round((new Date(b) - new Date(a)) / 864e5);
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const fxDp = v => v < 20 ? 4 : v < 200 ? 2 : 1;
+function alpha(hex, a) {
+  const h = hex.replace('#', ''); const n = parseInt(h.length === 3 ? h.split('').map(c => c + c).join('') : h, 16);
+  return `rgba(${n >> 16 & 255},${n >> 8 & 255},${n & 255},${a})`;
+}
+
+async function loadJSON(name) {
+  if (window.__EM_DATA__) return window.__EM_DATA__[name] ?? null;
+  const r = await fetch(`${DATA_DIR}/${name}.json`, { cache: 'no-cache' });
+  if (!r.ok) throw new Error(`${name}.json: HTTP ${r.status}`);
+  return r.json();
+}
+
+function tile(k, v, d = '', cls = '') {
+  return `<div class="tile"><div class="k">${esc(k)}</div><div class="v ${cls}" title="${esc(v)}">${v}</div>${d ? `<div class="d">${d}</div>` : ''}</div>`;
+}
+
+// ------------------------------- charts -----------------------------------
+function baseOpts(extra = {}) {
+  const grid = css('--grid'), t2 = css('--text-2');
+  return {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: { legend: { display: false, labels: { color: t2, boxWidth: 10, boxHeight: 10, font: { size: 11 } } },
+               tooltip: { callbacks: {} } },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: t2, maxTicksLimit: 6, maxRotation: 0, font: { size: 10 } }, border: { color: grid } },
+      y: { grid: { color: grid }, ticks: { color: t2, font: { size: 10 } }, border: { display: false } },
+    },
+    ...extra,
+  };
+}
+
+function lineChart(canvas, series, { label, color = css('--s1'), dp = 2, step = false, suffix = '' } = {}) {
+  const o = baseOpts();
+  o.plugins.tooltip.callbacks.label = c => ` ${label}: ${fmt(c.parsed.y, dp)}${suffix}`;
+  charts.push(new Chart(canvas, {
+    type: 'line',
+    data: { labels: series.map(p => p[0]), datasets: [{ label, data: series.map(p => p[1]), borderColor: color,
+            borderWidth: 2, pointRadius: 0, pointHoverRadius: 4, stepped: step ? 'before' : false, tension: 0 }] },
+    options: o,
+  }));
+}
+
+/** Bars by year: actual years solid, IMF projection years (>= current year) translucent. */
+function yearBars(canvas, sets, { dp = 1, suffix = '%', from = 2018 } = {}) {
+  const years = [...new Set(sets.flatMap(s => Object.keys(s.data)))].filter(y => +y >= from).sort();
+  const o = baseOpts();
+  o.plugins.legend.display = sets.length > 1;
+  o.plugins.tooltip.callbacks.title = items => `${items[0].label}${+items[0].label >= THIS_YEAR ? ' (IMF projection)' : ''}`;
+  o.plugins.tooltip.callbacks.label = c => ` ${c.dataset.label}: ${fmt(c.parsed.y, dp)}${suffix}`;
+  charts.push(new Chart(canvas, {
+    type: 'bar',
+    data: { labels: years, datasets: sets.map(s => ({
+      label: s.label, data: years.map(y => s.data[y] ?? null),
+      backgroundColor: years.map(y => +y >= THIS_YEAR ? alpha(s.color, .38) : s.color),
+      borderColor: s.color, borderWidth: years.map(y => +y >= THIS_YEAR ? 1 : 0),
+      borderRadius: 3, borderSkipped: 'start', maxBarThickness: 18, categoryPercentage: .8, barPercentage: .9,
+    })) },
+    options: o,
+  }));
+}
+
+/** Yield curve: x = years to maturity, one line per bond type. */
+function curveChart(canvas, groups) {
+  const o = baseOpts({ interaction: { mode: 'nearest', intersect: false } });
+  o.scales.x = { ...o.scales.x, type: 'linear', title: { display: true, text: 'Years to maturity', color: css('--text-3'), font: { size: 10 } } };
+  o.plugins.legend.display = groups.length > 1;
+  o.plugins.tooltip.callbacks.title = items => items[0].raw.name;
+  o.plugins.tooltip.callbacks.label = c => ` ${c.dataset.label}: ${fmt(c.parsed.y, 3)}%`;
+  charts.push(new Chart(canvas, {
+    type: 'scatter',
+    data: { datasets: groups.map(g => ({ label: g.label, data: g.points, showLine: true, borderColor: g.color,
+             backgroundColor: g.color, borderWidth: 2, borderDash: g.dash || [], pointRadius: g.dash ? 0 : 4, pointHoverRadius: 6 })) },
+    options: o,
+  }));
+}
+
+function chartBox(id, title, note = '') {
+  return `<div class="chart"><h4>${esc(title)} ${note ? `<span>${esc(note)}</span>` : ''}</h4><div class="box"><canvas id="${id}" role="img" aria-label="${esc(title)}"></canvas></div></div>`;
+}
+
+// ------------------------------- rendering --------------------------------
+function yrs(mat) { return +((new Date(mat) - new Date()) / 3.15576e10).toFixed(2); }
+
+function heroHTML(c) {
+  const d = c.derived, s = c.series, imf = c.imf || {};
+  const pol = d.policy_rate, fx = lastOf(s.fx), ch = d.fx_changes || {};
+  const y = String(THIS_YEAR);
+  const res = c.extras?.reserves_usd_mn ? [c.extras.reserves_usd_mn[0], c.extras.reserves_usd_mn[1] / 1e3]
+            : (lastOf(c.wb?.reserves_usd) ? [String(lastOf(c.wb.reserves_usd)[0]), lastOf(c.wb.reserves_usd)[1] / 1e9] : null);
+  const intr = d.interest?.[y];
+  const chips = [
+    `<span class="chip">Markets: <b>${esc(c.markets)}</b></span>`,
+    `<span class="chip">IMF: <b>${esc(c.imf_programme?.status || '—')}</b></span>`,
+    c.rating ? `<span class="chip">${esc(c.rating.agency)}: <b>${esc(c.rating.rating)}</b></span>` : '',
+    c.narrative_pending ? `<span class="chip warn">Analyst narrative pending</span>` : '',
+  ].join('');
+  const fxMove = ch['1m'];
+  return `
+    <div class="hero-top"><h2>${esc(c.name)}</h2><div class="chips">${chips}</div></div>
+    <div class="tiles">
+      ${tile(c.policy_label || 'Policy rate', pol ? fmt(pol[1], 2) + '%' : '—', pol ? `${esc(pol[0])} · ${esc(d.policy_source || '')}` : 'set in countries.json')}
+      ${tile('Real policy rate', d.real_rate == null ? '—' : (d.real_rate > 0 ? '+' : '') + fmt(d.real_rate, 1) + '%', 'vs latest inflation')}
+      ${tile(`USD/${c.ccy}`, fx ? fmt(fx[1], fxDp(fx[1])) : '—', fx ? `${esc(fx[0])}${fxMove == null ? '' : ` · ${fxMove > 0 ? '+' : ''}${fmt(fxMove, 1)}% 1m`}` : '')}
+      ${tile(`GDP growth ${y}`, fmt(imf.gdp?.[y]) + '%', 'IMF WEO')}
+      ${tile(`Inflation ${y}`, fmt(imf.cpi?.[y]) + '%', 'IMF WEO, avg')}
+      ${tile('Reserves', res ? '$' + fmt(res[1], 1) + 'bn' : '—', res ? esc(res[0]) : '')}
+      ${tile(`Gross debt ${y}`, fmt(imf.debt?.[y]) + '%', '% GDP, IMF')}
+      ${tile(`Interest / revenue ${y}`, intr?.revenue == null ? '—' : fmt(intr.revenue, 0) + '%', 'IMF-implied')}
+    </div>`;
+}
+
+function pointsHTML(win, stale) {
+  const pts = win?.points || [];
+  const list = pts.length ? `<ul class="pts">${pts.map(p =>
+      `<li>${esc(p.text)}${p.src?.length ? ` <span class="src">— ${p.src.map(esc).join(', ')}</span>` : ''}</li>`).join('')}</ul>`
+    : `<div class="pending">No analyst view yet. Add points in countries.json.</div>`;
+  return `<div><div class="sec">Analyst view</div>${list}</div>`;
+}
+
+function liveHTML(lines) {
+  return lines?.length ? `<div><div class="sec">Live read (auto)</div><ul class="live">${lines.map(l => `<li>${esc(l)}</li>`).join('')}</ul></div>` : '';
+}
+
+function asOfChip(win, stale) {
+  if (!win?.as_of) return `<span class="chip warn">no analyst date</span>`;
+  const age = daysBetween(win.as_of, todayISO());
+  return `<span class="chip ${stale ? 'warn' : ''}" title="Analyst view date">as of ${esc(win.as_of)}${stale ? ` · ${age}d old` : ''}</span>`;
+}
+
+function windowBody(key, c) {
+  const d = c.derived, s = c.series, x = c.extras || {}, imf = c.imf || {}, wb = c.wb || {};
+  const y = String(THIS_YEAR), py = String(THIS_YEAR - 1);
+  const lastWb = k => lastOf(wb[k]);
+  let tiles = '', charts = '', extra = '';
+  if (key === 'macro') {
+    tiles = [
+      tile(`GDP ${py} → ${y}`, `${fmt(imf.gdp?.[py])} → ${fmt(imf.gdp?.[y])}%`, 'real, IMF'),
+      tile(`CPI ${y} (eop)`, fmt(imf.cpi_eop?.[y]) + '%', 'IMF'),
+      x.ipca_12m ? tile('IPCA 12m', fmt(x.ipca_12m[1], 2) + '%', esc(x.ipca_12m[0])) : '',
+      x.ipc_mom ? tile('IPC m/m', fmt(x.ipc_mom[1], 1) + '%', esc(x.ipc_mom[0])) : '',
+      x.tiie28 ? tile('TIIE 28d', fmt(x.tiie28[1], 2) + '%', esc(x.tiie28[0])) : '',
+    ].join('');
+    charts = chartBox('c-macro-imf', 'Growth vs inflation, %', 'faded = IMF projection') +
+             ((s.policy_rate || []).length > 1 ? chartBox('c-macro-pol', `${c.policy_label || 'Policy rate'}, %`, d.policy_source || '') : '');
+  } else if (key === 'external') {
+    const ch = d.fx_changes || {};
+    const fxT = (lbl, k) => tile(`${c.ccy} ${lbl}`, ch[k] == null ? '—' : `${ch[k] > 0 ? '+' : ''}${fmt(ch[k], 1)}%`,
+                                  ch[k] == null ? '' : (ch[k] > 0 ? `${c.ccy} weaker` : `${c.ccy} stronger`), ch[k] > 0 ? 'up' : 'down');
+    const rm = lastWb('reserves_months'), rem = lastWb('remittances_usd');
+    tiles = [fxT('1m', '1m'), fxT('YTD', 'ytd'), fxT('1y', '1y'),
+      tile(`Current account ${y}`, fmt(imf.ca?.[y]) + '%', '% GDP, IMF'),
+      rm ? tile('Import cover', fmt(rm[1], 1) + ' mo', `${rm[0]}, World Bank`) : '',
+      rem ? tile('Remittances', '$' + fmt(rem[1] / 1e9, 1) + 'bn', `${rem[0]}, World Bank`) : '',
+      x.trm ? tile('TRM (official)', fmt(x.trm[1], 2), esc(x.trm[0])) : '',
+      x.uf ? tile('UF (CLP)', fmt(lastOf(x.uf)[1], 2), esc(lastOf(x.uf)[0])) : '',
+    ].join('');
+    charts = (s.fx || []).length > 1 ? chartBox('c-ext-fx', `USD/${c.ccy}`, 'up = local currency weaker') : '<div class="empty">No FX history.</div>';
+    if ((wb.reserves_usd || []).length) charts += chartBox('c-ext-res', 'Reserves incl. gold, US$bn', 'World Bank, annual');
+  } else if (key === 'fiscal') {
+    const it = d.interest?.[y];
+    tiles = [
+      tile(`Overall balance ${y}`, fmt(imf.balance?.[y]) + '%', '% GDP, IMF'),
+      tile(`Primary balance ${y}`, fmt(imf.primary?.[y]) + '%', '% GDP, IMF'),
+      tile(`Interest ${y}`, it ? fmt(it.gdp) + '%' : '—', '% GDP, primary − overall'),
+      tile(`Interest / revenue ${y}`, it?.revenue == null ? '—' : fmt(it.revenue, 0) + '%', 'IMF-implied'),
+      tile(`Gross debt ${y}`, fmt(imf.debt?.[y]) + '%', '% GDP, IMF'),
+      x.gross_debt_gdp ? tile('Gross debt (BCB)', fmt(x.gross_debt_gdp[1]) + '%', esc(x.gross_debt_gdp[0])) : '',
+    ].join('');
+    charts = `<div class="charts2">${chartBox('c-fis-debt', 'Gross govt debt, % GDP')}${chartBox('c-fis-int', 'Interest, % of revenue', 'IMF-implied')}</div>`;
+  } else if (key === 'debt') {
+    const ed = lastWb('ext_debt_usd'), ds = lastWb('debt_service_exports'), ir = lastWb('interest_revenue');
+    tiles = [
+      tile('IMF programme', esc(c.imf_programme?.status || '—'), ''),
+      ed ? tile('External debt', '$' + fmt(ed[1] / 1e9, 1) + 'bn', `${ed[0]}, World Bank`) : '',
+      ds ? tile('Debt service / exports', fmt(ds[1], 0) + '%', `${ds[0]}, World Bank`) : '',
+      ir ? tile('Interest / revenue', fmt(ir[1], 0) + '%', `${ir[0]}, central govt, WB`) : '',
+      c.rating ? tile(c.rating.agency, esc(c.rating.rating), esc(c.rating.note || '')) : '',
+    ].join('');
+    if (c.imf_programme?.detail) extra = `<div class="sub">${esc(c.imf_programme.detail)}</div>`;
+    charts = (wb.ext_debt_usd || []).length ? chartBox('c-debt-ext', 'External debt stock, US$bn', 'World Bank IDS, annual') : '';
+  } else if (key === 'valuation') {
+    const lt = lastOf(s.lt10y), ust = lastOf(s.ust10), di = lastOf(s.di_swap_360);
+    tiles = [
+      lt ? tile('10y local', fmt(lt[1], 2) + '%', `${lt[0].slice(0, 7)}, OECD/FRED`) : '',
+      lt && ust ? tile('10y vs UST', fmt((lt[1] - ust[1]) * 100, 0) + 'bp', '') : '',
+      ust ? tile('UST 10y', fmt(ust[1], 2) + '%', esc(ust[0])) : '',
+      di ? tile('DI×pré 360d', fmt(di[1], 2) + '%', esc(di[0]) + ', BCB') : '',
+      (x.sarb_rates || []).slice(0, 4).map(r => tile(r[0], fmt(r[1], 2) + '%', esc(r[2] || ''))).join(''),
+    ].join('');
+    const t = x.tesouro;
+    if (t) {
+      charts += chartBox('c-val-curve', 'Tesouro Direto curves, % p.a.', `${t.as_of} (dashed: ${t.prior_as_of})`);
+      const rows = t.curve.map(b => `<tr><td>${esc(b.type)}</td><td>${esc(b.maturity)}</td><td class="r">${fmt(b.yield, 2)}%</td></tr>`).join('');
+      extra += `<details><summary class="sub">Curve table (${t.curve.length} bonds)</summary><div class="tscroll"><table class="t"><tr><th>Bond</th><th>Maturity</th><th class="r">Yield</th></tr>${rows}</table></div></details>`;
+    }
+    if (c.bonds?.length) {
+      charts += chartBox('c-val-bonds', 'Yield curve, %', c.bonds_label || '');
+      const rows = c.bonds.map(b => `<tr><td>${esc(b.name)}</td><td>${esc(b.maturity)}</td><td class="r">${fmt(b.yield, 3)}%</td>
+        <td class="r">${ust ? fmt((b.yield - ust[1]) * 100, 0) + 'bp' : '—'}</td><td>${esc(b.source || '')} ${esc(b.as_of || '')}</td></tr>`).join('');
+      extra += `<div class="tscroll"><table class="t"><tr><th>Bond</th><th>Maturity</th><th class="r">Yield</th><th class="r">vs UST10</th><th>Source</th></tr>${rows}</table></div>`;
+    }
+    if ((s.lt10y || []).length > 1) charts += chartBox('c-val-10y', '10y local-currency govt yield, %', 'monthly, OECD via FRED');
+    if ((s.di_swap_360 || []).length > 1) charts += chartBox('c-val-di', 'DI×pré swap 360d, %', 'BCB SGS 7806');
+    if (!charts && !extra) extra = '<div class="empty">No free API for this market\'s bond prices. Add bonds (name, maturity, yield) in countries.json.</div>';
+  } else if (key === 'catalysts') {
+    const today = todayISO();
+    const ev = [...(c.events || [])].sort((a, b) => a.date.localeCompare(b.date));
+    extra = ev.length ? `<div>${ev.map(e => {
+      const n = daysBetween(today, e.date);
+      return `<div class="ev ${n < 0 ? 'past' : ''}"><span class="days">${n < 0 ? 'done' : n === 0 ? 'today' : 'T−' + n + 'd'}</span><span>${esc(e.date)}</span><span>${esc(e.label)}</span></div>`;
+    }).join('')}</div>` : '<div class="empty">No dated events. Add them in countries.json.</div>';
+    const news = c.news || [];
+    extra += news.length ? `<div><div class="sec">Headlines (Google News, 14d)</div><ul class="news pts">${news.map(n =>
+      `<li><a href="${esc(n.url)}" target="_blank" rel="noopener noreferrer">${esc(n.title)}</a> <span class="meta">${esc(n.source)} · ${esc(n.date || '')}</span></li>`).join('')}</ul></div>` : '';
+  }
+  return `${tiles.trim() ? `<div class="tiles">${tiles}</div>` : ''}${extra}${charts}`;
+}
+
+function drawCharts(c) {
+  const s = c.series, x = c.extras || {}, imf = c.imf || {}, wb = c.wb || {};
+  const c1 = css('--s1'), c2 = css('--s2'), c3 = css('--s3');
+  const el = id => document.getElementById(id);
+  if (el('c-macro-imf')) yearBars(el('c-macro-imf'), [
+    { label: 'Real GDP growth', data: imf.gdp || {}, color: c1 }, { label: 'CPI inflation (avg)', data: imf.cpi || {}, color: c2 }]);
+  if (el('c-macro-pol')) lineChart(el('c-macro-pol'), s.policy_rate, { label: c.policy_label || 'Policy rate', step: true, suffix: '%' });
+  if (el('c-ext-fx')) lineChart(el('c-ext-fx'), s.fx.slice(-520), { label: `USD/${c.ccy}`, dp: fxDp(lastOf(s.fx)[1]) });
+  if (el('c-ext-res')) yearBars(el('c-ext-res'), [{ label: 'Reserves', data: Object.fromEntries(wb.reserves_usd.map(([yy, v]) => [yy, v / 1e9])), color: c1 }], { suffix: 'bn', from: 2014 });
+  if (el('c-fis-debt')) yearBars(el('c-fis-debt'), [{ label: 'Gross debt', data: imf.debt || {}, color: c1 }]);
+  if (el('c-fis-int')) yearBars(el('c-fis-int'), [{ label: 'Interest / revenue',
+    data: Object.fromEntries(Object.entries(c.derived.interest || {}).map(([yy, v]) => [yy, v.revenue])), color: c2 }], { dp: 0 });
+  if (el('c-debt-ext')) yearBars(el('c-debt-ext'), [{ label: 'External debt', data: Object.fromEntries(wb.ext_debt_usd.map(([yy, v]) => [yy, v / 1e9])), color: c1 }], { suffix: 'bn', from: 2014 });
+  if (el('c-val-curve')) {
+    const t = x.tesouro, colors = { 'LTN': c1, 'NTN-F': c1, 'NTN-B': c2, 'NTN-B Principal': c2 };
+    const groups = [];
+    for (const typ of ['NTN-F', 'NTN-B']) {   // coupon bonds only on the chart; table shows everything
+      const cur = t.curve.filter(b => b.type === typ), pr = t.prior.filter(b => b.type === typ);
+      if (!cur.length) continue;
+      groups.push({ label: `${typ} ${typ === 'NTN-B' ? '(real)' : '(nominal)'}`, color: colors[typ],
+        points: cur.map(b => ({ x: yrs(b.maturity), y: b.yield, name: `${typ} ${b.maturity}` })) });
+      if (pr.length) groups.push({ label: `${typ} 1m ago`, color: alpha(colors[typ], .5), dash: [4, 3],
+        points: pr.map(b => ({ x: yrs(b.maturity), y: b.yield, name: `${typ} ${b.maturity} (${t.prior_as_of})` })) });
+    }
+    if (!groups.length) {  // fall back to zero-coupon bonds
+      for (const typ of ['LTN', 'NTN-B Principal']) {
+        const cur = t.curve.filter(b => b.type === typ);
+        if (cur.length) groups.push({ label: typ, color: colors[typ], points: cur.map(b => ({ x: yrs(b.maturity), y: b.yield, name: `${typ} ${b.maturity}` })) });
+      }
+    }
+    curveChart(el('c-val-curve'), groups);
+  }
+  if (el('c-val-bonds')) curveChart(el('c-val-bonds'), [{ label: 'Yield', color: c1,
+    points: c.bonds.map(b => ({ x: yrs(b.maturity), y: b.yield, name: b.name })) }]);
+  if (el('c-val-10y')) lineChart(el('c-val-10y'), s.lt10y, { label: '10y yield', suffix: '%' });
+  if (el('c-val-di')) lineChart(el('c-val-di'), s.di_swap_360, { label: 'DI×pré 360d', color: c3, suffix: '%' });
+}
+
+function healthHTML(key) {
+  const src = meta?.sources || {};
+  const rows = Object.entries(src).filter(([k]) => k.startsWith(key + '/') || k.startsWith('all/'));
+  if (!rows.length) return '<summary>Data sources</summary><div class="empty">No fetch log (demo or first run).</div>';
+  const bad = rows.filter(([, v]) => !v.ok).length;
+  return `<summary>Data sources for this country: ${rows.length - bad} ok, ${bad} failed</summary>
+    <div class="tscroll"><table class="t"><tr><th>Source</th><th>Status</th><th>Last success</th><th>Error</th></tr>
+    ${rows.map(([k, v]) => `<tr><td>${esc(k)}</td><td class="${v.ok ? 'ok' : 'fail'}">${v.ok ? 'ok' : 'failed'}</td>
+      <td>${esc((v.last_ok || '').slice(0, 16).replace('T', ' '))}</td><td>${esc(v.error || '')}</td></tr>`).join('')}</table></div>`;
+}
+
+async function show(key) {
+  charts.forEach(ch => ch.destroy()); charts = [];
+  let c;
+  try { c = cache[key] ??= await loadJSON(key); } catch (e) { c = null; }
+  if (!c) { $('#hero').innerHTML = `<div class="empty">No data for ${esc(key)} yet. Run fetch_em.py.</div>`; $('#grid').innerHTML = ''; return; }
+  $('#hero').innerHTML = heroHTML(c);
+  $('#grid').innerHTML = WINDOWS.map(([k, title], i) => {
+    const win = c.windows?.[k], stale = c.windows_stale?.[k];
+    return `<section class="card" id="w-${k}">
+      <div class="card-h"><h3><span class="n">${i + 1}</span>${esc(title)}</h3>${asOfChip(win, stale)}</div>
+      ${pointsHTML(win, stale)}
+      ${liveHTML(c.derived?.auto?.[k])}
+      ${windowBody(k, c)}
+    </section>`;
+  }).join('');
+  drawCharts(c);
+  $('#health').innerHTML = healthHTML(key);
+  document.title = `${c.name} · EM Macro Monitor`;
+}
+
+async function init() {
+  try { meta = await loadJSON('_meta'); } catch (e) {
+    $('#banner').innerHTML = `<div class="banner">Could not load ${esc(DATA_DIR)}/_meta.json. Run <code>python fetch_em.py</code> and serve the folder over http (or open the single-file build).</div>`;
+    return;
+  }
+  $('#updated').textContent = `Data refreshed ${meta.updated.slice(0, 16).replace('T', ' ')} UTC${meta.demo ? ' · DEMO DATA' : ''}`;
+  if (meta.demo) $('#banner').innerHTML = '<div class="banner">Demo mode: the live series are synthetic. The analyst views are real.</div>';
+  const sel = $('#country');
+  sel.innerHTML = Object.entries(meta.order).map(([region, keys]) =>
+    `<optgroup label="${esc(region)}">${keys.map(k => `<option value="${k}">${esc(meta.names[k] || k)}</option>`).join('')}</optgroup>`).join('');
+  const all = Object.values(meta.order).flat();
+  const start = all.includes(location.hash.slice(1)) ? location.hash.slice(1) : all[0];
+  sel.value = start;
+  sel.addEventListener('change', () => { history.replaceState(null, '', '#' + sel.value); show(sel.value); });
+  window.addEventListener('hashchange', () => { const k = location.hash.slice(1); if (all.includes(k)) { sel.value = k; show(k); } });
+  show(start);
+}
+
+$('#theme').addEventListener('click', () => {
+  const root = document.documentElement;
+  const dark = root.dataset.theme ? root.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  root.dataset.theme = dark ? 'light' : 'dark';
+  show($('#country').value);
+});
+init();
+</script>
+</body>
+</html>

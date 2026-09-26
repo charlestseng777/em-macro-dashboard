@@ -1,0 +1,46 @@
+name: Update EM Macro Dashboard
+
+on:
+  schedule:
+    - cron: '30 5 * * *'   # 05:30 UTC, every day
+  workflow_dispatch:        # manual trigger from the Actions tab
+
+permissions:
+  contents: write
+
+concurrency:
+  group: em-macro-refresh
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      # fetch_em.py uses only the standard library - nothing to install.
+      - name: Fetch fresh data
+        env:
+          BANXICO_TOKEN: ${{ secrets.BANXICO_TOKEN }}   # optional, Mexico target rate / TIIE
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}     # optional, else public CSV
+        run: |
+          # Per-source failures keep the previous values and are logged in
+          # data/_meta.json; the script only exits 1 if every source failed.
+          python fetch_em.py || fetch_status=$?
+          fetch_status=${fetch_status:-0}
+          python build_single.py
+          exit $fetch_status
+
+      - name: Commit updated data
+        if: always()
+        run: |
+          git config user.name "em-macro-bot"
+          git config user.email "actions@github.com"
+          git add data/ em-macro-dashboard.html
+          git diff --staged --quiet || git commit -m "EM macro data refresh $(date +%Y-%m-%d)"
+          git pull --rebase
+          git push
