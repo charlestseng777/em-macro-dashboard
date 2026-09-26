@@ -1,0 +1,261 @@
+{
+ "updated": "2026-09-26T21:26:38+00:00",
+ "demo": false,
+ "order": {
+  "Latin America": [
+   "brazil",
+   "mexico",
+   "colombia",
+   "chile"
+  ],
+  "Africa": [
+   "south_africa",
+   "egypt",
+   "nigeria",
+   "ghana",
+   "angola",
+   "kenya",
+   "zambia"
+  ]
+ },
+ "sources": {
+  "all/imf": {
+   "ok": false,
+   "error": "GET https://www.imf.org/external/datamapper/api/v1/NGDP_RPCH/BRA/MEX/COL/CHL/ZAF/EGY/NGA/GHA/AGO/KEN/ZMB failed: HTTP Error 403: Forbidden",
+   "last_ok": null
+  },
+  "all/worldbank": {
+   "ok": true,
+   "at": "2026-09-26T21:25:40+00:00",
+   "last_ok": "2026-09-26T21:25:40+00:00"
+  },
+  "all/fred:DGS10": {
+   "ok": true,
+   "at": "2026-09-26T21:25:40+00:00",
+   "last_ok": "2026-09-26T21:25:40+00:00"
+  },
+  "brazil/fx:yahoo": {
+   "ok": true,
+   "at": "2026-09-26T21:25:40+00:00",
+   "last_ok": "2026-09-26T21:25:40+00:00"
+  },
+  "brazil/bcb:432": {
+   "ok": true,
+   "at": "2026-09-26T21:25:41+00:00",
+   "last_ok": "2026-09-26T21:25:41+00:00"
+  },
+  "brazil/bcb:13522": {
+   "ok": true,
+   "at": "2026-09-26T21:25:42+00:00",
+   "last_ok": "2026-09-26T21:25:42+00:00"
+  },
+  "brazil/bcb:13621": {
+   "ok": true,
+   "at": "2026-09-26T21:25:44+00:00",
+   "last_ok": "2026-09-26T21:25:44+00:00"
+  },
+  "brazil/bcb:13762": {
+   "ok": true,
+   "at": "2026-09-26T21:25:45+00:00",
+   "last_ok": "2026-09-26T21:25:45+00:00"
+  },
+  "brazil/bcb:7806": {
+   "ok": false,
+   "error": "GET https://api.bcb.gov.br/dados/serie/bcdata.sgs.7806/dados failed: HTTP Error 404: Not Found",
+   "last_ok": null
+  },
+  "brazil/tesouro": {
+   "ok": true,
+   "at": "2026-09-26T21:26:16+00:00",
+   "last_ok": "2026-09-26T21:26:16+00:00"
+  },
+  "brazil/news": {
+   "ok": true,
+   "at": "2026-09-26T21:26:17+00:00",
+   "last_ok": "2026-09-26T21:26:17+00:00"
+  },
+  "mexico/fx:yahoo": {
+   "ok": true,
+   "at": "2026-09-26T21:26:17+00:00",
+   "last_ok": "2026-09-26T21:26:17+00:00"
+  },
+  "mexico/banxico": {
+   "ok": false,
+   "error": "BANXICO_TOKEN not set (free at banxico.org.mx/SieAPIRest) - skipped",
+   "last_ok": null
+  },
+  "mexico/bis:policy": {
+   "ok": true,
+   "at": "2026-09-26T21:26:18+00:00",
+   "last_ok": "2026-09-26T21:26:18+00:00"
+  },
+  "mexico/fred:IRLTLT01MXM156N": {
+   "ok": true,
+   "at": "2026-09-26T21:26:18+00:00",
+   "last_ok": "2026-09-26T21:26:18+00:00"
+  },
+  "mexico/news": {
+   "ok": true,
+   "at": "2026-09-26T21:26:19+00:00",
+   "last_ok": "2026-09-26T21:26:19+00:00"
+  },
+  "colombia/fx:yahoo": {
+   "ok": true,
+   "at": "2026-09-26T21:26:19+00:00",
+   "last_ok": "2026-09-26T21:26:19+00:00"
+  },
+  "colombia/trm:datos.gov.co": {
+   "ok": true,
+   "at": "2026-09-26T21:26:20+00:00",
+   "last_ok": "2026-09-26T21:26:20+00:00"
+  },
+  "colombia/bis:policy": {
+   "ok": true,
+   "at": "2026-09-26T21:26:21+00:00",
+   "last_ok": "2026-09-26T21:26:21+00:00"
+  },
+  "colombia/fred:IRLTLT01COM156N": {
+   "ok": false,
+   "error": "GET https://fred.stlouisfed.org/graph/fredgraph.csv failed: HTTP Error 404: Not Found",
+   "last_ok": null
+  },
+  "colombia/news": {
+   "ok": true,
+   "at": "2026-09-26T21:26:28+00:00",
+   "last_ok": "2026-09-26T21:26:28+00:00"
+  },
+  "chile/fx:yahoo": {
+   "ok": true,
+   "at": "2026-09-26T21:26:28+00:00",
+   "last_ok": "2026-09-26T21:26:28+00:00"
+  },
+  "chile/mindicador:tpm": {
+   "ok": true,
+   "at": "2026-09-26T21:26:29+00:00",
+   "last_ok": "2026-09-26T21:26:29+00:00"
+  },
+  "chile/mindicador:uf": {
+   "ok": true,
+   "at": "2026-09-26T21:26:30+00:00",
+   "last_ok": "2026-09-26T21:26:30+00:00"
+  },
+  "chile/mindicador:ipc": {
+   "ok": true,
+   "at": "2026-09-26T21:26:30+00:00",
+   "last_ok": "2026-09-26T21:26:30+00:00"
+  },
+  "chile/fred:IRLTLT01CLM156N": {
+   "ok": true,
+   "at": "2026-09-26T21:26:31+00:00",
+   "last_ok": "2026-09-26T21:26:31+00:00"
+  },
+  "chile/news": {
+   "ok": true,
+   "at": "2026-09-26T21:26:31+00:00",
+   "last_ok": "2026-09-26T21:26:31+00:00"
+  },
+  "south_africa/fx:yahoo": {
+   "ok": true,
+   "at": "2026-09-26T21:26:31+00:00",
+   "last_ok": "2026-09-26T21:26:31+00:00"
+  },
+  "south_africa/sarb": {
+   "ok": true,
+   "at": "2026-09-26T21:26:32+00:00",
+   "last_ok": "2026-09-26T21:26:32+00:00"
+  },
+  "south_africa/bis:policy": {
+   "ok": true,
+   "at": "2026-09-26T21:26:33+00:00",
+   "last_ok": "2026-09-26T21:26:33+00:00"
+  },
+  "south_africa/fred:IRLTLT01ZAM156N": {
+   "ok": true,
+   "at": "2026-09-26T21:26:34+00:00",
+   "last_ok": "2026-09-26T21:26:34+00:00"
+  },
+  "south_africa/news": {
+   "ok": true,
+   "at": "2026-09-26T21:26:34+00:00",
+   "last_ok": "2026-09-26T21:26:34+00:00"
+  },
+  "egypt/fx:yahoo": {
+   "ok": true,
+   "at": "2026-09-26T21:26:34+00:00",
+   "last_ok": "2026-09-26T21:26:34+00:00"
+  },
+  "egypt/news": {
+   "ok": true,
+   "at": "2026-09-26T21:26:35+00:00",
+   "last_ok": "2026-09-26T21:26:35+00:00"
+  },
+  "nigeria/fx:yahoo": {
+   "ok": true,
+   "at": "2026-09-26T21:26:35+00:00",
+   "last_ok": "2026-09-26T21:26:35+00:00"
+  },
+  "nigeria/news": {
+   "ok": true,
+   "at": "2026-09-26T21:26:36+00:00",
+   "last_ok": "2026-09-26T21:26:36+00:00"
+  },
+  "ghana/fx:yahoo": {
+   "ok": true,
+   "at": "2026-09-26T21:26:36+00:00",
+   "last_ok": "2026-09-26T21:26:36+00:00"
+  },
+  "ghana/news": {
+   "ok": true,
+   "at": "2026-09-26T21:26:36+00:00",
+   "last_ok": "2026-09-26T21:26:36+00:00"
+  },
+  "angola/fx:yahoo": {
+   "ok": false,
+   "error": "Yahoo AOA=X: only 1 points",
+   "last_ok": null
+  },
+  "angola/fx:open.er-api": {
+   "ok": true,
+   "at": "2026-09-26T21:26:36+00:00",
+   "last_ok": "2026-09-26T21:26:36+00:00"
+  },
+  "angola/news": {
+   "ok": true,
+   "at": "2026-09-26T21:26:37+00:00",
+   "last_ok": "2026-09-26T21:26:37+00:00"
+  },
+  "kenya/fx:yahoo": {
+   "ok": true,
+   "at": "2026-09-26T21:26:37+00:00",
+   "last_ok": "2026-09-26T21:26:37+00:00"
+  },
+  "kenya/news": {
+   "ok": true,
+   "at": "2026-09-26T21:26:38+00:00",
+   "last_ok": "2026-09-26T21:26:38+00:00"
+  },
+  "zambia/fx:yahoo": {
+   "ok": true,
+   "at": "2026-09-26T21:26:38+00:00",
+   "last_ok": "2026-09-26T21:26:38+00:00"
+  },
+  "zambia/news": {
+   "ok": true,
+   "at": "2026-09-26T21:26:38+00:00",
+   "last_ok": "2026-09-26T21:26:38+00:00"
+  }
+ },
+ "names": {
+  "brazil": "Brazil",
+  "mexico": "Mexico",
+  "colombia": "Colombia",
+  "chile": "Chile",
+  "south_africa": "South Africa",
+  "egypt": "Egypt",
+  "nigeria": "Nigeria",
+  "ghana": "Ghana",
+  "angola": "Angola",
+  "kenya": "Kenya",
+  "zambia": "Zambia"
+ }
+}
