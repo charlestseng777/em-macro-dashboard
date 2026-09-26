@@ -15,7 +15,7 @@ ap.add_argument("--out", default=str(ROOT / "em-macro-dashboard.html"))
 a = ap.parse_args()
 
 data = {p.stem: json.loads(p.read_text()) for p in sorted(Path(a.data).glob("*.json"))}
-assert "_meta" in data, f"no _meta.json in {a.data} - run fetch_em.py first"
+assert "meta" in data, f"no meta.json in {a.data} - run fetch_em.py first"
 html = (ROOT / "index.html").read_text()
 chartjs = (ROOT / "vendor" / "chart.umd.js").read_text().replace("</script>", "<\\/script>")
 payload = json.dumps(data, ensure_ascii=False, separators=(",", ":")).replace("</", "<\\/")

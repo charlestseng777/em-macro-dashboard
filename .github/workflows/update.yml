@@ -37,7 +37,7 @@ jobs:
           FRED_API_KEY: ${{ secrets.FRED_API_KEY }}     # optional, else public CSV
         run: |
           # Per-source failures keep the previous values and are logged in
-          # data/_meta.json; the script only exits 1 if every source failed.
+          # data/meta.json; the script only exits 1 if every source failed.
           python fetch_em.py || fetch_status=$?
           fetch_status=${fetch_status:-0}
           python build_single.py

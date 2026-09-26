@@ -18,7 +18,7 @@ with the hand-written narrative, and writes one JSON per country into data/:
     Google News RSS          latest headlines per country (Catalysts window)
 
 Each source is fetched independently. If one fails, the previous values for that
-source are kept, and the error is recorded in data/_meta.json and shown on the page.
+source are kept, and the error is recorded in data/meta.json and shown on the page.
 
     python fetch_em.py                 # live run
     python fetch_em.py --demo          # synthetic data, for previewing offline
@@ -66,19 +66,19 @@ CONFIG = {
     "chile":        {"iso3": "CHL", "ccy": "CLP", "fx": "CLP=X", "bis": "CL", "fred10y": "IRLTLT01CLM156N",
                      "news": '"Banco Central de Chile" OR "Chile inflation" OR "Chile peso"'},
     "south_africa": {"iso3": "ZAF", "ccy": "ZAR", "fx": "ZAR=X", "bis": "ZA", "fred10y": "IRLTLT01ZAM156N",
-                     "news": 'SARB OR rand OR "South Africa budget" OR SAGB'},
+                     "news": '"South African Reserve Bank" OR "South African rand" OR "South Africa budget" OR "South Africa inflation"'},
     "egypt":        {"iso3": "EGY", "ccy": "EGP", "fx": "EGP=X", "bis": None, "fred10y": None,
                      "news": '"Central Bank of Egypt" OR "Egypt IMF" OR "Egyptian pound"'},
     "nigeria":      {"iso3": "NGA", "ccy": "NGN", "fx": "NGN=X", "bis": None, "fred10y": None,
-                     "news": 'CBN OR naira OR "Nigeria inflation" OR "Nigeria reserves"'},
+                     "news": '"Central Bank of Nigeria" OR naira OR "Nigeria inflation" OR "Nigeria reserves" OR "Nigeria DMO"'},
     "ghana":        {"iso3": "GHA", "ccy": "GHS", "fx": "GHS=X", "bis": None, "fred10y": None,
-                     "news": '"Bank of Ghana" OR cedi OR "Ghana IMF"'},
+                     "news": '"Bank of Ghana" OR "Ghana cedi" OR "Ghana IMF" OR "Ghana inflation"'},
     "angola":       {"iso3": "AGO", "ccy": "AOA", "fx": "AOA=X", "bis": None, "fred10y": None,
                      "news": '"Angola" (kwanza OR Eurobond OR IMF OR oil)'},
     "kenya":        {"iso3": "KEN", "ccy": "KES", "fx": "KES=X", "bis": None, "fred10y": None,
-                     "news": '"Central Bank of Kenya" OR "Kenya Eurobond" OR "Kenya IMF" OR shilling'},
+                     "news": '"Central Bank of Kenya" OR "Kenya Eurobond" OR "Kenya IMF" OR "Kenyan shilling"'},
     "zambia":       {"iso3": "ZMB", "ccy": "ZMW", "fx": "ZMW=X", "bis": None, "fred10y": None,
-                     "news": '"Bank of Zambia" OR kwacha OR "Zambia IMF"'},
+                     "news": '"Bank of Zambia" OR "Zambian kwacha" OR "Zambia IMF" OR "Zambia inflation"'},
 }
 IMF_INDICATORS = {
     "gdp": "NGDP_RPCH",        # real GDP growth, %
@@ -507,6 +507,9 @@ def derive(rec):
     infl_lbl = "IPCA 12m" if infl is not None else None
     if infl is None:
         infl, infl_lbl = iv("cpi_eop", y) or iv("cpi", y), f"IMF {y} inflation"
+    if infl is None and imf.get("cpi"):  # World Bank fallback: latest actual year
+        yy, infl = max((k, v) for k, v in imf["cpi"].items() if v is not None)
+        infl_lbl = f"World Bank {yy} CPI inflation"
     d["real_rate"] = round(pol[1] - infl, 2) if pol and infl is not None else None
     d["fx_changes"] = fx_changes(s.get("fx"))
 
@@ -611,8 +614,10 @@ def main():
     cfg = json.loads((ROOT / "countries.json").read_text())
     countries = cfg["countries"]
     meta_prev = {}
-    if (out / "_meta.json").exists():
-        meta_prev = json.loads((out / "_meta.json").read_text())
+    for name in ("meta.json", "_meta.json"):  # _meta.json: old name, hidden by GitHub Pages' Jekyll
+        if (out / name).exists():
+            meta_prev = json.loads((out / name).read_text())
+            break
     status = {}   # "country/source" -> {"ok": bool, "at": ..., "error": ...}
 
     def run(key, fn, *args):
@@ -787,7 +792,8 @@ def main():
     meta = {"updated": datetime.now(timezone.utc).isoformat(timespec="seconds"), "demo": DEMO,
             "order": cfg["order"], "sources": status,
             "names": {k: v["name"] for k, v in countries.items()}}
-    (out / "_meta.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False))
+    (out / "meta.json").write_text(json.dumps(meta, indent=1, ensure_ascii=False))
+    (out / "_meta.json").unlink(missing_ok=True)
     failed = [k for k, v in status.items() if not v["ok"] and "BANXICO_TOKEN" not in v.get("error", "")]
     print(f"done: {sum(v['ok'] for v in status.values())} ok, {len(failed)} failed")
     return 1 if failed and len(failed) == len(status) else 0
