@@ -24,9 +24,9 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
 
@@ -48,10 +48,18 @@ jobs:
         run: |
           git config user.name "em-macro-bot"
           git config user.email "actions@github.com"
-          git add data/ em-macro-dashboard.html
+          # Commit this run's data on top of the LATEST main, not the commit this
+          # run started from: a re-run of an old run, or two overlapping runs,
+          # would otherwise conflict on data/*.json. This run's data is the
+          # newest, so it simply replaces whatever is there.
+          out=$(mktemp -d)
+          cp -r data em-macro-dashboard.html "$out"/
+          git fetch origin main
+          git checkout -f -B main origin/main
+          rm -rf data && cp -r "$out"/data . && cp "$out"/em-macro-dashboard.html .
+          git add -A data/ em-macro-dashboard.html
           git diff --staged --quiet || git commit -m "EM macro data refresh $(date +%Y-%m-%d)"
-          git pull --rebase
-          git push
+          git push origin main
 
       # Publish from this job: commits pushed with GITHUB_TOKEN don't trigger a
       # "deploy from branch" Pages build, so the site would otherwise go stale.
