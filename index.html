@@ -30,6 +30,7 @@
     --good: #4cc38a; --bad: #f2867f; --warn: #e0b050;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body { margin: 0; background: var(--bg); color: var(--text);
          font: 14px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   .wrap { max-width: 1280px; margin: 0 auto; padding: 20px 16px 48px; }
@@ -428,7 +429,12 @@ async function show(key) {
 
 async function init() {
   try { meta = await loadJSON('_meta'); } catch (e) {
-    $('#banner').innerHTML = `<div class="banner">Could not load ${esc(DATA_DIR)}/_meta.json. Run <code>python fetch_em.py</code> and serve the folder over http (or open the single-file build).</div>`;
+    $('#updated').textContent = 'No data yet';
+    $('#banner').innerHTML = `<div class="banner"><b>Waiting for the first data refresh.</b> ${esc(DATA_DIR)}/_meta.json doesn't exist yet.
+      On GitHub, open <b>Actions → Update EM Macro Dashboard → Run workflow</b>. When it finishes (about 2 minutes), it commits <code>data/</code>
+      and this page fills in about a minute later. After that it refreshes itself every day at 05:30 UTC.
+      Running locally instead? <code>python fetch_em.py</code>, then serve this folder over http.</div>`;
+    $('#hero').hidden = true; $('#health').hidden = true; $('.controls').hidden = true;
     return;
   }
   $('#updated').textContent = `Data refreshed ${meta.updated.slice(0, 16).replace('T', ' ')} UTC${meta.demo ? ' · DEMO DATA' : ''}`;
