@@ -32,12 +32,12 @@ IMF years from the current year onward are projections and are drawn faded.
 ## Data sources (all free)
 | Source | Used for | Key? |
 |---|---|---|
-| IMF DataMapper API (WEO) | growth, inflation, current account, debt, balances, revenue | no |
+| IMF DataMapper API (WEO) | growth, inflation, current account, debt, balances, revenue. If imf.org blocks the run, World Bank actuals (no projections) stand in | no |
 | World Bank API | reserves, import cover, external debt, debt service, remittances, interest/revenue | no |
 | Yahoo Finance chart API (fallback: open.er-api.com) | daily USD/XXX | no |
 | BIS policy-rate statistics | BR, MX, CO, CL, ZA policy rates | no |
-| FRED (OECD MEI) | 10y yields for MX, CO, CL, ZA; UST 10y | optional `FRED_API_KEY` |
-| Banco Central do Brasil SGS | Selic, IPCA 12m, reserves, gross debt/GDP, DI×pré swap 360d | no |
+| FRED (OECD MEI) | 10y yields for MX, CL, ZA; UST 10y | optional `FRED_API_KEY` |
+| Banco Central do Brasil SGS | Selic, IPCA 12m, reserves, gross debt/GDP | no |
 | Tesouro Direto (Tesouro Transparente) | NTN-F / LTN / NTN-B curves, today vs 1m ago | no |
 | Banxico SIE | Mexico target rate, TIIE 28d, FIX | **`BANXICO_TOKEN`** (free) |
 | datos.gov.co | Colombia official TRM | no |
@@ -51,7 +51,7 @@ Policy rates for Nigeria, Egypt, Ghana, Zambia, Kenya and Angola come from `coun
 
 ## Setup
 1. Optional: under repo Settings → Secrets → Actions, add `BANXICO_TOKEN` (from banxico.org.mx/SieAPIRest) and `FRED_API_KEY`.
-2. Settings → Pages: deploy from `main`, root. The dashboard is then at `https://<user>.github.io/<repo>/`.
+2. Settings → Pages → Build and deployment → Source: **GitHub Actions**, not "Deploy from a branch". The workflow publishes the site after every refresh, and the dashboard is at `https://<user>.github.io/<repo>/`.
 3. Actions → **Update EM Macro Dashboard** → Run workflow. Each source logs `[ok]` or `[FAIL]`, and the page's **Data sources** panel shows the same status.
 4. `em-macro-dashboard.html` is rebuilt on every run as a single self-contained file (data and Chart.js inlined). Download it and double-click to open.
 
@@ -61,7 +61,7 @@ Edit `countries.json`. Each window has `as_of` and `points: [{text, src: [..]}]`
 
 ## Verify on the first live run
 The live fetchers were written without network access to test against, so check the workflow log on the first run for:
-- BCB SGS codes in `BCB_SERIES` (especially 13621 reserves and 7806 DI×pré 360d)
+- BCB SGS codes in `BCB_SERIES`
 - the Tesouro Direto CSV URL (`TESOURO_CSV`)
 - BIS policy-rate endpoint parsing
 - SARB web-API field names

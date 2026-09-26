@@ -42,6 +42,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).parent
 UA = "Mozilla/5.0 (compatible; em-macro-dashboard/1.0)"
+# imf.org rejects non-browser clients with 403, so IMF calls present as a browser.
+BROWSER_HEADERS = {"User-Agent": ("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
+                                  "(KHTML, like Gecko) Chrome/128.0 Safari/537.36"),
+                   "Accept": "application/json, text/plain, */*", "Accept-Language": "en-US,en;q=0.9",
+                   "Referer": "https://www.imf.org/external/datamapper/"}
 TODAY = datetime.now(timezone.utc).date()
 YEAR = TODAY.year
 HIST_DAYS = 730
@@ -56,7 +61,7 @@ CONFIG = {
                      "news": '"Brazil" (Selic OR Copom OR "fiscal" OR "NTN-B" OR election)'},
     "mexico":       {"iso3": "MEX", "ccy": "MXN", "fx": "MXN=X", "bis": "MX", "fred10y": "IRLTLT01MXM156N",
                      "news": 'Banxico OR "Mexico peso" OR Mbonos'},
-    "colombia":     {"iso3": "COL", "ccy": "COP", "fx": "COP=X", "bis": "CO", "fred10y": "IRLTLT01COM156N",
+    "colombia":     {"iso3": "COL", "ccy": "COP", "fx": "COP=X", "bis": "CO", "fred10y": None,
                      "news": 'BanRep OR "Colombia peso" OR "Colombia fiscal" OR TES'},
     "chile":        {"iso3": "CHL", "ccy": "CLP", "fx": "CLP=X", "bis": "CL", "fred10y": "IRLTLT01CLM156N",
                      "news": '"Banco Central de Chile" OR "Chile inflation" OR "Chile peso"'},
@@ -92,13 +97,17 @@ WB_INDICATORS = {
     "debt_service_exports": "DT.TDS.DECT.EX.ZS",  # total debt service, % of exports
     "remittances_usd": "BX.TRF.PWKR.CD.DT",    # personal remittances received, US$
     "interest_revenue": "GC.XPN.INTP.RV.ZS",   # central govt interest payments, % of revenue
+    # actuals used in place of the IMF WEO when imf.org is unreachable (no projections)
+    "wb_gdp": "NY.GDP.MKTP.KD.ZG",             # real GDP growth, %
+    "wb_cpi": "FP.CPI.TOTL.ZG",                # CPI inflation, %
+    "wb_ca": "BN.CAB.XOKA.GD.ZS",              # current account, % GDP
+    "wb_debt": "GC.DOD.TOTL.GD.ZS",            # central government debt, % GDP
 }
 BCB_SERIES = {                    # verify codes at www3.bcb.gov.br/sgspub
     "selic": 432,                 # Selic target, % p.a., daily
     "ipca_12m": 13522,            # IPCA, 12-month %, monthly
     "reserves_usd_mn": 13621,     # international reserves, US$ mn, daily
     "gross_debt_gdp": 13762,      # general government gross debt (DBGG), % GDP, monthly
-    "di_swap_360": 7806,          # DI x pre swap reference rate, 360d, % p.a.
 }
 BANXICO_SERIES = {"target": "SF61745", "tiie28": "SF43783", "fix": "SF43718"}
 TESOURO_CSV = ("https://www.tesourotransparente.gov.br/ckan/dataset/df56aa42-484a-4a59-8184-7676580c81e3/"
@@ -156,7 +165,7 @@ def src_imf():
     out = {k: {} for k in CONFIG}
     by_iso = {c["iso3"]: k for k, c in CONFIG.items()}
     for key, ind in IMF_INDICATORS.items():
-        j = get_json(f"https://www.imf.org/external/datamapper/api/v1/{ind}/{isos}")
+        j = get_json(f"https://www.imf.org/external/datamapper/api/v1/{ind}/{isos}", headers=BROWSER_HEADERS)
         vals = (j.get("values") or {}).get(ind) or {}
         for iso, years in vals.items():
             if iso in by_iso:
@@ -502,6 +511,15 @@ def derive(rec):
     d["fx_changes"] = fx_changes(s.get("fx"))
 
     auto = {k: [] for k in ("macro", "external", "fiscal", "debt", "valuation", "catalysts")}
+    if rec.get("imf_source", "IMF WEO") != "IMF WEO":
+        def latest(key):
+            ys = sorted((imf.get(key) or {}).items())
+            return ys[-1] if ys else None
+        for w, key, lbl in (("macro", "gdp", "real GDP growth"), ("macro", "cpi", "CPI inflation"),
+                            ("external", "ca", "current account (% GDP)"), ("fiscal", "debt", "central govt debt (% GDP)")):
+            lv = latest(key)
+            if lv:
+                auto[w].append(f"World Bank {lbl}: {f(lv[1])}% in {lv[0]} (IMF WEO unavailable on this run).")
     g, gp = iv("gdp", y), iv("gdp", py)
     if g is not None:
         auto["macro"].append(f"IMF WEO sees real GDP growth of {f(g)}% in {y} (vs {f(gp)}% in {py}) "
@@ -628,10 +646,19 @@ def main():
         if not info:
             continue
         old = prev[k]
+        imf = (imf_all or {}).get(k)
+        imf_source = "IMF WEO"
+        if not imf and (wb_all or {}).get(k):
+            w = wb_all[k]
+            imf = {dst: {str(yy): round(v, 3) for yy, v in w.get(src, [])}
+                   for dst, src in (("gdp", "wb_gdp"), ("cpi", "wb_cpi"), ("ca", "wb_ca"), ("debt", "wb_debt"))}
+            imf_source = "World Bank actuals (IMF unavailable)"
+        elif not imf:
+            imf, imf_source = old.get("imf", {}), old.get("imf_source", "IMF WEO")
         rec = {
             "key": k, "name": info["name"], "ccy": c["ccy"], "iso3": c["iso3"],
             "markets": info.get("markets"),
-            "imf": (imf_all or {}).get(k) or old.get("imf", {}),
+            "imf": imf, "imf_source": imf_source,
             "wb": (wb_all or {}).get(k) or old.get("wb", {}),
             "series": dict(old.get("series", {})),
             "extras": dict(old.get("extras", {})),
@@ -650,6 +677,7 @@ def main():
         if ust:
             rec["series"]["ust10"] = ust
         s, x = rec["series"], rec["extras"]
+        s.pop("di_swap_360", None)  # series dropped (BCB SGS 7806 does not exist); clear old files
 
         if DEMO:
             s["fx"] = demo_walk(k + "fx", DEMO_LEVELS[c["ccy"]], 0.006)
@@ -682,8 +710,10 @@ def main():
                 if trm:
                     x["trm"] = trm[-1]
                     fx = fx or trm
-            if not fx and not s.get("fx"):
-                fx = run(f"{k}/fx:open.er-api", src_fx_spot, c["ccy"])
+            if not fx:
+                spot = run(f"{k}/fx:open.er-api", src_fx_spot, c["ccy"])
+                if spot:  # no free history for this pair: build it up one day per run
+                    fx = trim(list(s.get("fx", [])) + spot)
             if fx:
                 s["fx"] = fx
 
@@ -696,8 +726,6 @@ def main():
                 for n, v in bcb.items():
                     if v:
                         x[n] = v[-1]
-                if bcb.get("di_swap_360"):
-                    s["di_swap_360"] = bcb["di_swap_360"]
                 t = run("brazil/tesouro", src_tesouro)
                 if t:
                     x["tesouro"] = t

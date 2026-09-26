@@ -4,9 +4,14 @@ on:
   schedule:
     - cron: '30 5 * * *'   # 05:30 UTC, every day
   workflow_dispatch:        # manual trigger from the Actions tab
+  push:                     # redeploy when the code or countries.json changes
+    branches: [main]
+    paths-ignore: ['data/**', 'em-macro-dashboard.html']
 
 permissions:
-  contents: write
+  contents: write   # commit refreshed data
+  pages: write      # publish to GitHub Pages
+  id-token: write
 
 concurrency:
   group: em-macro-refresh
@@ -15,6 +20,9 @@ concurrency:
 jobs:
   update:
     runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - uses: actions/checkout@v4
 
@@ -44,3 +52,16 @@ jobs:
           git diff --staged --quiet || git commit -m "EM macro data refresh $(date +%Y-%m-%d)"
           git pull --rebase
           git push
+
+      # Publish from this job: commits pushed with GITHUB_TOKEN don't trigger a
+      # "deploy from branch" Pages build, so the site would otherwise go stale.
+      # Requires Settings > Pages > Source = "GitHub Actions".
+      - uses: actions/configure-pages@v5
+        if: always()
+      - uses: actions/upload-pages-artifact@v3
+        if: always()
+        with:
+          path: .
+      - id: deploy
+        if: always()
+        uses: actions/deploy-pages@v4

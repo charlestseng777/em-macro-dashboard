@@ -34,7 +34,7 @@
         ]},
         "valuation": {"as_of": "2026-09-22", "points": [
           {"text": "One EM strategist moved Brazil USD sovereigns to Underweight as a valuation call, arguing spreads have richened to near one-year tights while fiscal evidence has not improved.", "src": []},
-          {"text": "DI futures (B3) have no free API, so the DI×pré swap reference rate from BCB is shown as a proxy.", "src": []}
+          {"text": "DI futures (B3) have no free API. Add DI levels to the bonds list by hand, and use the Tesouro curve below as the daily read on the pre-fixed curve.", "src": []}
         ]},
         "catalysts": {"as_of": "2026-09-22", "points": [
           {"text": "The catalyst is the election: first round on October 4 and runoff on October 25.", "src": []}
@@ -96,7 +96,7 @@
           {"text": "TES come as COP fixed-rate and UVR-linked bonds, with a large offshore investor base. Add the funding plan here.", "src": []}
         ]},
         "valuation": {"as_of": null, "points": [
-          {"text": "The 10y TES yield comes from the OECD long-term rate series on FRED, which is monthly.", "src": []}
+          {"text": "TES yields have no free API here (FRED carries no Colombia 10y series). Add TES levels by hand in the bonds list, and the spread to UST10 is computed automatically.", "src": []}
         ]},
         "catalysts": {"as_of": null, "points": [
           {"text": "Add: the 2026 electoral cycle, BanRep meetings and ratings actions.", "src": []}
